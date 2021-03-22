@@ -11,6 +11,10 @@
 #include "../utils/memory.h"
 #include "../tasks/root_task.h"
 
+#include "../utils/logging.h"
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -28,6 +32,9 @@ Group::Group(const options::Options &opts)
       time_bound(opts.get<int>("time_bound")),
       dump_symmetry_graph(opts.get<bool>("dump_symmetry_graph")),
       search_symmetries(opts.get<SearchSymmetries>("search_symmetries")),
+      symmetrical_lookups(opts.get<SymmetricalLookups>("symmetrical_lookups")),
+      rw_length_or_number_symmetric_states(opts.get<int>("symmetry_rw_length_or_number_states")),
+      rng(utils::parse_rng_from_options(opts)),
       dump_permutations(opts.get<bool>("dump_permutations")),
       write_search_generators(opts.get<bool>("write_search_generators")),
       write_all_generators(opts.get<bool>("write_all_generators")),
@@ -234,6 +241,105 @@ void Group::statistics() const {
     }
 }
 
+// ===============================================================================
+// Methods related to symmetric lookups
+
+void Group::compute_random_symmetric_state(const State &state,
+                                           StateRegistry &symmetric_states_registry,
+                                           std::vector<State> &states) const {
+    // The state must be unpacked. When called from symmetric lookups heuristic,
+    // the state is unregistered and therefore unpacked.
+    State state_copy = symmetric_states_registry.register_state_buffer(state.get_unpacked_values());
+    // Perform random walk of length random_walk_length to compute a single random symmetric state.
+    State current_state = state_copy;
+    current_state.unpack();
+    for (int i = 0; i < rw_length_or_number_symmetric_states; ++i) {
+        int gen_no = (*rng)(get_num_generators());
+        current_state = symmetric_states_registry.permute_state(current_state, get_permutation(gen_no));
+        current_state.unpack();
+    }
+    // Only take the resulting state if it differs from the given one
+    if (current_state.get_id() != state_copy.get_id()) {
+        states.push_back(current_state);
+    }
+}
+
+void Group::compute_subset_all_symmetric_states(const State &state,
+                                                StateRegistry &symmetric_states_registry,
+                                                vector<State> &states) const {
+    // TODO: improve efficiency by disallowing a permutation to be applied
+    // sequently more than its order times?
+//    utils::g_log << "original  state: ";
+//    for (size_t i = 0; i < g_variable_domain.size(); ++i) {
+//        utils::g_log << i << "=" << state[i] << ",";
+//    }
+//    utils::g_log << endl;
+
+    /*
+      Systematically generate symmetric states until the wished number is
+      reached (rw_length_or_number_symmetric_states) or until all states
+      have been generated.
+    */
+    int num_vars = tasks::g_root_task->get_num_variables();
+    // The state must be unpacked. When called from symmetric lookups heuristic,
+    // the state is unregistered and therefore unpacked.
+    State state_copy = symmetric_states_registry.register_state_buffer(state.get_unpacked_values());
+    queue<StateID> open_list;
+    open_list.push(state_copy.get_id());
+    int num_gen = get_num_generators();
+    PerStateInformation<bool> reached(false);
+    reached[state_copy] = true;
+    while (!open_list.empty()) {
+        State current_state = symmetric_states_registry.lookup_state(open_list.front());
+        current_state.unpack();
+        open_list.pop();
+        for (int i = 0; i < num_vars; ++i) {
+            assert(current_state[i].get_value() >= 0
+                && current_state[i].get_value() < tasks::g_root_task->get_variable_domain_size(i));
+        }
+        for (int gen_no = 0; gen_no < num_gen; ++gen_no) {
+            State permuted_state =
+                symmetric_states_registry.permute_state(current_state, get_permutation(gen_no));
+            for (int i = 0; i < num_vars; ++i) {
+                assert(permuted_state[i].get_value() >= 0
+                    && permuted_state[i].get_value() < tasks::g_root_task->get_variable_domain_size(i));
+            }
+//            utils::g_log << "applying generator " << gen_no << " to state " << current_state.get_id() << endl;
+//            utils::g_log << "symmetric state: ";
+//            for (size_t i = 0; i < g_variable_domain.size(); ++i) {
+//                utils::g_log << i << "=" << permuted_state[i] << ",";
+//            }
+//            utils::g_log << endl;
+            if (!reached[permuted_state]) {
+//                utils::g_log << "its a new state, with id " << permuted_state.get_id() << endl;
+                states.push_back(permuted_state);
+                if (static_cast<int>(states.size()) == rw_length_or_number_symmetric_states) {
+                    // If number_of_states == -1, this test can never trigger and hence
+                    // we compute the set of all symmetric states as desired.
+                    return;
+                }
+                reached[permuted_state] = true;
+                open_list.push(permuted_state.get_id());
+            }
+        }
+    }
+}
+
+void Group::compute_symmetric_states(const State &state,
+                                     StateRegistry &symmetric_states_registry,
+                                     vector<State> &states) const {
+    if (symmetrical_lookups == SymmetricalLookups::ONE_STATE) {
+        compute_random_symmetric_state(state,
+                                       symmetric_states_registry,
+                                       states);
+    } else if (symmetrical_lookups == SymmetricalLookups::SUBSET_OF_STATES ||
+               symmetrical_lookups == SymmetricalLookups::ALL_STATES) {
+        compute_subset_all_symmetric_states(state,
+                                            symmetric_states_registry,
+                                            states);
+    }
+}
+
 vector<int> Group::get_canonical_representative(const State &state) const {
     assert(has_symmetries());
     state.unpack();
@@ -372,6 +478,34 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
                            "search or DKS for storing the canonical "
                            "representative of every state during search",
                            "NONE");
+
+    // Options for symmetric lookup symmetries
+    vector<string> symmetrical_lookups;
+    symmetrical_lookups.push_back("NONE");
+    symmetrical_lookups.push_back("ONE_STATE");
+    symmetrical_lookups.push_back("SUBSET_OF_STATES");
+    symmetrical_lookups.push_back("ALL_STATES");
+    parser.add_enum_option<SymmetricalLookups>("symmetrical_lookups",
+                           symmetrical_lookups,
+                           "Choose the options for using symmetric lookups, "
+                           "i.e. what symmetric states should be computed "
+                           "for every heuristic evaluation:\n"
+                           "- ONE_STATE: one random state, generated through a random "
+                           "walk of length specified via length_or_number option\n"
+                           "- SUBSET_OF_STATES: a subset of all symmetric states, "
+                           "generated in the same systematic way as generating "
+                           "all symmetric states, of size specified via "
+                           "length_or_Number option\n"
+                           "- ALL_STATES: all symmetric states, generated via BFS in "
+                           "the orbit.",
+                           "NONE");
+    parser.add_option<int>("symmetry_rw_length_or_number_states",
+                           "Choose the length of a random walk if sl_type="
+                           "ONE or the number of symmetric states if sl_type="
+                           "SUBSET",
+                           "5");
+
+    utils::add_rng_options(parser);
 
     parser.add_option<bool>("dump_permutations",
                            "Dump the generators",

@@ -798,6 +798,14 @@ fast_downward_plugin(
     DEPENDS BLISS
 )
 
+fast_downward_plugin(
+    NAME SL
+    HELP "Plugin containing the code for symmetrical lookups"
+    SOURCES
+        symmetrical_lookups_heuristic.cc
+    DEPENDS BLISS
+)
+
 fast_downward_add_plugin_sources(PLANNER_SOURCES)
 
 # The order in PLANNER_SOURCES influences the order in which object

@@ -25,6 +25,8 @@ class MergeAndShrinkHeuristic : public Heuristic {
     void extract_factors(FactoredTransitionSystem &fts);
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
+//    virtual int compute_heuristic_for_symmetrical_state(const GlobalState &global_state,
+//                                                        const Group *group);
 public:
     explicit MergeAndShrinkHeuristic(const options::Options &opts);
 };

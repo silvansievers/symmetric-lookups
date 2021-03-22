@@ -14,10 +14,20 @@ namespace options {
 class Options;
 }
 
+namespace utils {
+class RandomNumberGenerator;
+}
+
 enum class SearchSymmetries {
     NONE,
     OSS,
     DKS
+};
+enum class SymmetricalLookups {
+    NONE,
+    ONE_STATE,
+    SUBSET_OF_STATES,
+    ALL_STATES
 };
 
 // Permutation of bliss graph vertices.
@@ -31,6 +41,9 @@ class Group {
     const int time_bound;
     const bool dump_symmetry_graph;
     const SearchSymmetries search_symmetries;
+    SymmetricalLookups symmetrical_lookups;
+    int rw_length_or_number_symmetric_states;
+    const std::shared_ptr<utils::RandomNumberGenerator> rng;
     const bool dump_permutations;
     const bool write_search_generators;
     const bool write_all_generators;
@@ -56,6 +69,14 @@ class Group {
 
     void write_generators() const;
     void add_to_be_written_generator(const unsigned int *generator);
+
+    // Methods for SL
+    void compute_random_symmetric_state(const State &state,
+                                        StateRegistry &symmetric_states_registry,
+                                        std::vector<State> &states) const;
+    void compute_subset_all_symmetric_states(const State &state,
+                                             StateRegistry &symmetric_states_registry,
+                                             std::vector<State> &states) const;
 public:
     explicit Group(const options::Options &opts);
     ~Group() = default;
@@ -107,6 +128,14 @@ public:
     SearchSymmetries get_search_symmetries() const {
         return search_symmetries;
     }
+    SymmetricalLookups get_symmetrical_lookups() const {
+        return symmetrical_lookups;
+    }
+
+    // Methods used for symmetric lookups
+    void compute_symmetric_states(const State &state,
+                                  StateRegistry &symmetric_states_registry,
+                                  std::vector<State> &states) const;
 
     // Used for OSS
     std::vector<int> get_canonical_representative(const State &state) const;

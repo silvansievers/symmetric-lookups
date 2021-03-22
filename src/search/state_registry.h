@@ -231,7 +231,7 @@ public:
       somewhere else). Registers and returns the permuted state if this was not
       done before. This is an expensive operation as it includes duplicate
       checking.
-      Used for state tracing (OSS and DKS).
+      Used for state tracing (OSS and DKS) and computing symmetric states (SL).
     */
     State permute_state(const State &state, const Permutation &permutation);
 

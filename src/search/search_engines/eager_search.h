@@ -26,6 +26,9 @@ class EagerSearch : public SearchEngine {
     /*
       Note: orbit space search and duplicate pruning with dks does not work
       with preferred operators and multi path search.
+
+      The same is true if using states from OSS for symmetrical heuristic 
+      look-ups.
     */
     bool use_oss() const;
     bool use_dks() const;

@@ -19,6 +19,7 @@ class Options;
 }
 
 class Heuristic : public Evaluator {
+    friend class SymmetricalLookupsHeuristic;
     struct HEntry {
         /* dirty is conceptually a bool, but Visual C++ does not support
            packing ints and bools together in a bitfield. */
