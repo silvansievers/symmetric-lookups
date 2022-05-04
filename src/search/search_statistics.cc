@@ -13,8 +13,8 @@ int g_symmetrical_states_generated;
 int g_symmetry_improved_evaluations;
 int g_improving_symmetrical_states;
 
-SearchStatistics::SearchStatistics(utils::Verbosity verbosity)
-    : verbosity(verbosity) {
+SearchStatistics::SearchStatistics(utils::LogProxy &log)
+    : log(log) {
     expanded_states = 0;
     reopened_states = 0;
     evaluated_states = 0;
@@ -52,55 +52,49 @@ void SearchStatistics::report_f_value_progress(int f) {
 }
 
 void SearchStatistics::print_f_line() const {
-    if (verbosity >= utils::Verbosity::NORMAL) {
-        utils::g_log << "f = " << lastjump_f_value
-                     << ", ";
+    if (log.is_at_least_normal()) {
+        log << "f = " << lastjump_f_value
+            << ", ";
         print_basic_statistics();
-        utils::g_log << endl;
+        log << endl;
     }
 }
 
 void SearchStatistics::print_checkpoint_line(int g) const {
-    if (verbosity >= utils::Verbosity::NORMAL) {
-        utils::g_log << "g=" << g << ", ";
+    if (log.is_at_least_normal()) {
+        log << "g=" << g << ", ";
         print_basic_statistics();
-        utils::g_log << endl;
+        log << endl;
     }
 }
 
 void SearchStatistics::print_basic_statistics() const {
-    utils::g_log << evaluated_states << " evaluated, "
-                 << expanded_states << " expanded";
+    log << evaluated_states << " evaluated, "
+        << expanded_states << " expanded";
     if (reopened_states > 0) {
-        utils::g_log << ", " << reopened_states << " reopened";
+        log << ", " << reopened_states << " reopened";
     }
 }
 
 void SearchStatistics::print_detailed_statistics() const {
-    utils::g_log << "Expanded " << expanded_states << " state(s)." << endl;
-    utils::g_log << "Reopened " << reopened_states << " state(s)." << endl;
-    utils::g_log << "Evaluated " << evaluated_states << " state(s)." << endl;
-    utils::g_log << "Evaluations: " << evaluations << endl;
-    utils::g_log << "Generated " << generated_states << " state(s)." << endl;
-    utils::g_log << "Dead ends: " << dead_end_states << " state(s)." << endl;
-    utils::g_log << "Symmetrical states generated: " << g_symmetrical_states_generated << endl;
-    utils::g_log << "Symmetry-improved evaluations: " << g_symmetry_improved_evaluations << endl;
-    utils::g_log << "Improving symmetrical states: " << g_improving_symmetrical_states << endl;
+    log << "Expanded " << expanded_states << " state(s)." << endl;
+    log << "Reopened " << reopened_states << " state(s)." << endl;
+    log << "Evaluated " << evaluated_states << " state(s)." << endl;
+    log << "Evaluations: " << evaluations << endl;
+    log << "Generated " << generated_states << " state(s)." << endl;
+    log << "Dead ends: " << dead_end_states << " state(s)." << endl;
+    log << "Symmetrical states generated: " << g_symmetrical_states_generated << endl;
+    log << "Symmetry-improved evaluations: " << g_symmetry_improved_evaluations << endl;
+    log << "Improving symmetrical states: " << g_improving_symmetrical_states << endl;
 
     if (lastjump_f_value >= 0) {
-        utils::g_log << "Expanded until last jump: "
-                     << lastjump_expanded_states << " state(s)." << endl;
-        utils::g_log << "Reopened until last jump: "
-                     << lastjump_reopened_states << " state(s)." << endl;
-        utils::g_log << "Evaluated until last jump: "
-                     << lastjump_evaluated_states << " state(s)." << endl;
-        utils::g_log << "Generated until last jump: "
-                     << lastjump_generated_states << " state(s)." << endl;
-        utils::g_log << "Symmetrical states generated until last jump: "
-             << last_jump_symmetrical_states_generated << " state(s)." << endl;
-        utils::g_log << "Symmetry-improved evaluations until last jump: "
-             << last_jump_symmetry_improved_evaluations << endl;
-        utils::g_log << "Improving symmetrical states until last jump: "
-             << last_jump_improving_symmetrical_states << endl;
+        log << "Expanded until last jump: "
+            << lastjump_expanded_states << " state(s)." << endl;
+        log << "Reopened until last jump: "
+            << lastjump_reopened_states << " state(s)." << endl;
+        log << "Evaluated until last jump: "
+            << lastjump_evaluated_states << " state(s)." << endl;
+        log << "Generated until last jump: "
+            << lastjump_generated_states << " state(s)." << endl;
     }
 }

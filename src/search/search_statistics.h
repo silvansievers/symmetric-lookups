@@ -10,7 +10,7 @@
 */
 
 namespace utils {
-enum class Verbosity;
+class LogProxy;
 }
 
 extern int g_symmetrical_states_generated;
@@ -18,7 +18,7 @@ extern int g_symmetry_improved_evaluations;
 extern int g_improving_symmetrical_states;
 
 class SearchStatistics {
-    const utils::Verbosity verbosity;
+    utils::LogProxy &log;
 
     // General statistics
     int expanded_states;  // no states for which successors were generated
@@ -42,7 +42,7 @@ class SearchStatistics {
 
     void print_f_line() const;
 public:
-    explicit SearchStatistics(utils::Verbosity verbosity);
+    explicit SearchStatistics(utils::LogProxy &log);
     ~SearchStatistics() = default;
 
     // Methods that update statistics.

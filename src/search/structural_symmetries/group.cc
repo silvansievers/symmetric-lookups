@@ -254,7 +254,7 @@ void Group::compute_random_symmetric_state(const State &state,
     State current_state = state_copy;
     current_state.unpack();
     for (int i = 0; i < rw_length_or_number_symmetric_states; ++i) {
-        int gen_no = (*rng)(get_num_generators());
+        int gen_no = rng->random(get_num_generators());
         current_state = symmetric_states_registry.permute_state(current_state, get_permutation(gen_no));
         current_state.unpack();
     }
