@@ -94,7 +94,6 @@ extra_attributes=[
 attributes = list(exp.DEFAULT_TABLE_ATTRIBUTES)
 attributes.extend(extra_attributes)
 
-REVISION=REVISIONS[0]
 exp.add_absolute_report_step(
     filter_algorithm=[
         '{}-ms-lookups-one5'.format(REVISION),
