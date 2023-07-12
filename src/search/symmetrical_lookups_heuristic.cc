@@ -1,18 +1,17 @@
 #include "symmetrical_lookups_heuristic.h"
 
-#include "option_parser.h"
-#include "plugin.h"
 #include "search_statistics.h"
 #include "state_registry.h"
 
+#include "plugins/options.h"
+#include "plugins/plugin.h"
 #include "structural_symmetries/group.h"
-
-#include "../tasks/root_task.h"
-#include "../utils/logging.h"
+#include "tasks/root_task.h"
+#include "utils/logging.h"
 
 using namespace std;
 
-SymmetricalLookupsHeuristic::SymmetricalLookupsHeuristic(const Options &opts)
+SymmetricalLookupsHeuristic::SymmetricalLookupsHeuristic(const plugins::Options &opts)
     : Heuristic(opts),
       component_heuristic(dynamic_pointer_cast<Heuristic>(opts.get<shared_ptr<Evaluator>>("component_heuristic"))),
       group(opts.get<shared_ptr<Group>>("symmetries")) {
@@ -75,29 +74,30 @@ int SymmetricalLookupsHeuristic::compute_heuristic(const State &ancestor_state) 
     return value;
 }
 
-static shared_ptr<Heuristic> _parse(OptionParser &parser) {
-    parser.add_option<shared_ptr<Evaluator>>(
-        "component_heuristic",
-        "any heuristic to be used with symmetrical lookups");
-    parser.add_option<shared_ptr<Group>>(
-        "symmetries",
-        "symmetries object to compute bliss symmetries",
-        OptionParser::NONE);
-    Heuristic::add_options_to_parser(parser);
-    Options opts = parser.parse();
-    if (parser.dry_run())
-        return nullptr;
-    else {
-        if (opts.contains("symmetries")) {
-            shared_ptr<Group> group = opts.get<shared_ptr<Group>>("symmetries");
+class SymmetricalLookupsHeuristicFeature : public  plugins::TypedFeature<Evaluator, SymmetricalLookupsHeuristic>{
+public:
+    SymmetricalLookupsHeuristicFeature() : TypedFeature("sl_heuristic") {
+        document_title("Symmetrical Lookups Heuristic");
+        document_synopsis("");
+        Heuristic::add_options_to_feature(*this);
+        add_option<shared_ptr<Evaluator>>(
+            "component_heuristic",
+            "any heuristic to be used with symmetrical lookups");
+        add_option<shared_ptr<Group>>(
+            "symmetries",
+            "symmetries object to compute bliss symmetries",
+            plugins::ArgumentInfo::NO_DEFAULT);
+    }
+
+    virtual shared_ptr<SymmetricalLookupsHeuristic> create_component(const plugins::Options &options, const utils::Context &context) const override {
+        if (options.contains("symmetries")) {
+            shared_ptr<Group> group = options.get<shared_ptr<Group>>("symmetries");
             if (group->get_symmetrical_lookups() == SymmetricalLookups::NONE) {
-                cerr << "Symmetries option passed to symmetrical lookups "
-                     << "heuristic, but no symmetries should be used." << endl;
-                utils::exit_with(utils::ExitCode::SEARCH_INPUT_ERROR);
+                context.error("Symmetries option passed to symmetrical lookups heuristic, but no symmetries should be used.");
             }
         }
-        return make_shared<SymmetricalLookupsHeuristic>(opts);
+        return make_shared<SymmetricalLookupsHeuristic>(options);
     }
-}
+};
 
-static Plugin<Evaluator> _plugin("sl_heuristic", _parse);
+static plugins::FeaturePlugin<SymmetricalLookupsHeuristicFeature> _plugin;

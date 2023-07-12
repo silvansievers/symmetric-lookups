@@ -22,7 +22,7 @@ protected:
 //    virtual int compute_heuristic_for_symmetrical_state(const GlobalState &global_state,
 //                                                        const Group *group);
 public:
-    explicit MergeAndShrinkHeuristic(const options::Options &opts);
+    explicit MergeAndShrinkHeuristic(const plugins::Options &opts);
 };
 }
 

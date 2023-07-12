@@ -3,8 +3,6 @@
 
 #include "heuristic.h"
 
-#include "options/options.h"
-
 class Group;
 
 class SymmetricalLookupsHeuristic : public Heuristic {
@@ -13,7 +11,7 @@ class SymmetricalLookupsHeuristic : public Heuristic {
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
 public:
-    explicit SymmetricalLookupsHeuristic(const options::Options &opts);
+    explicit SymmetricalLookupsHeuristic(const plugins::Options &opts);
     virtual ~SymmetricalLookupsHeuristic() override = default;
 };
 

@@ -10,7 +10,7 @@ class State;
 class StateRegistry;
 class TaskProxy;
 
-namespace options {
+namespace plugins {
 class Options;
 }
 
@@ -78,7 +78,7 @@ class Group {
                                              StateRegistry &symmetric_states_registry,
                                              std::vector<State> &states) const;
 public:
-    explicit Group(const options::Options &opts);
+    explicit Group(const plugins::Options &opts);
     ~Group() = default;
 
     // Graph creator
